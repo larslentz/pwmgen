@@ -551,7 +551,7 @@ registerProcessor("pwm-processor", PWMProcessor);
                         : "border-border text-muted-foreground hover:border-[hsl(187_84%_54%/0.4)] hover:text-[hsl(187_84%_54%)]"
                     }`}
                   >
-                    {inverted ? "⇄ Scale Inverted" : "⇄ Invert Scale Display"}
+                    {inverted ? "⇄ Inverted" : "⇄ Invert"}
                   </button>
                 </div>
                 <div className="flex items-center gap-2">
