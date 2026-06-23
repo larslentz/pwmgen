@@ -570,19 +570,19 @@ registerProcessor("pwm-processor", PWMProcessor);
                 className="[&_[role=slider]]:bg-[hsl(187_84%_40%)] [&_[role=slider]]:border-[hsl(187_84%_54%)] [&_.bg-primary]:bg-[hsl(187_84%_40%)]"
               />
               <div className="flex justify-between text-xs text-muted-foreground font-mono">
-                <span>0%</span>
+                <span>{inverted ? "100%" : "0%"}</span>
                 <span className="text-[hsl(187_84%_54%)] font-semibold">
                   {effectiveDuty.toFixed(1)}%
                   {inverted && <span style={{color:"#cbd5e1",fontWeight:400}}> ({dutyCycle.toFixed(1)}%)</span>}
                 </span>
-                <span>100%</span>
+                <span>{inverted ? "0%" : "100%"}</span>
               </div>
             </div>
 
             {/* Waveform Preview */}
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Waveform Preview</span>
+                <span className="text-sm text-muted-foreground">Waveform Representation (for reference)</span>
                 {inverted && <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-[hsl(187_84%_54%/0.1)] border border-[hsl(187_84%_54%/0.3)] text-[hsl(187_84%_54%)]">INVERTED</span>}
               </div>
               <WaveformPreview frequency={frequency} dutyCycle={effectiveDuty} active={isPlaying} />
