@@ -410,6 +410,11 @@ registerProcessor("pwm-processor", PWMProcessor);
   useEffect(() => { if (isPlaying) sendParam("frequency", frequency); },  [frequency, isPlaying, sendParam]);
   useEffect(() => { if (isPlaying) sendParam("dutyCycle", effectiveDuty / 100); }, [effectiveDuty, isPlaying, sendParam]);
 
+  // Sync input box display when invert is toggled
+  useEffect(() => {
+    setDutyInput((inverted ? 100 - dutyCycle : dutyCycle).toFixed(1));
+  }, [inverted]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Cleanup on unmount
   useEffect(() => () => { stopOutput(); }, [stopOutput]);
 
@@ -427,13 +432,13 @@ registerProcessor("pwm-processor", PWMProcessor);
 
   const handleDutySlider = (val: number[]) => {
     setDutyCycle(val[0]);
-    setDutyInput(val[0].toFixed(1));
+    setDutyInput(inverted ? (100 - val[0]).toFixed(1) : val[0].toFixed(1));
   };
 
   const handleDutyInput = (raw: string) => {
     setDutyInput(raw);
     const v = parseFloat(raw);
-    if (!isNaN(v) && v >= 0 && v <= 100) setDutyCycle(v);
+    if (!isNaN(v) && v >= 0 && v <= 100) setDutyCycle(inverted ? 100 - v : v);
   };
 
   return (
@@ -556,7 +561,7 @@ registerProcessor("pwm-processor", PWMProcessor);
                     value={dutyInput}
                     min={0} max={100} step={0.1}
                     onChange={e => handleDutyInput(e.target.value)}
-                    onBlur={() => setDutyInput(dutyCycle.toFixed(1))}
+                    onBlur={() => setDutyInput(effectiveDuty.toFixed(1))}
                     className="w-24 bg-background border border-border rounded px-2 py-1 text-right text-sm font-mono text-[hsl(187_84%_54%)] focus:outline-none focus:border-[hsl(187_84%_54%)]"
                   />
                   <span className="text-sm font-mono text-[hsl(187_84%_54%)] w-12">%</span>
