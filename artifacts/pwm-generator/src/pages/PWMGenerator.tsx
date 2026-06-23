@@ -546,7 +546,7 @@ registerProcessor("pwm-processor", PWMProcessor);
                         : "border-border text-muted-foreground hover:border-[hsl(187_84%_54%/0.4)] hover:text-[hsl(187_84%_54%)]"
                     }`}
                   >
-                    {inverted ? "⇄ Inverted" : "⇄ Invert"}
+                    {inverted ? "⇄ Scale Inverted" : "⇄ Invert Scale Display"}
                   </button>
                 </div>
                 <div className="flex items-center gap-2">
@@ -571,7 +571,10 @@ registerProcessor("pwm-processor", PWMProcessor);
               />
               <div className="flex justify-between text-xs text-muted-foreground font-mono">
                 <span>0%</span>
-                <span className="text-[hsl(187_84%_54%)] font-semibold">{effectiveDuty.toFixed(1)}%</span>
+                <span className="text-[hsl(187_84%_54%)] font-semibold">
+                  {effectiveDuty.toFixed(1)}%
+                  {inverted && <span className="opacity-40 font-normal text-muted-foreground"> ({dutyCycle.toFixed(1)}%)</span>}
+                </span>
                 <span>100%</span>
               </div>
             </div>
