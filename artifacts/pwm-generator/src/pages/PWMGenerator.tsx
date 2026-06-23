@@ -573,7 +573,7 @@ registerProcessor("pwm-processor", PWMProcessor);
                 <span>0%</span>
                 <span className="text-[hsl(187_84%_54%)] font-semibold">
                   {effectiveDuty.toFixed(1)}%
-                  {inverted && <span className="opacity-65 font-normal text-muted-foreground"> ({dutyCycle.toFixed(1)}%)</span>}
+                  {inverted && <span style={{color:"#cbd5e1",fontWeight:400}}> ({dutyCycle.toFixed(1)}%)</span>}
                 </span>
                 <span>100%</span>
               </div>
