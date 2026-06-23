@@ -4,7 +4,7 @@ import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Play, Square, Volume2, Zap, Cpu } from "lucide-react";
+import { Play, Square, Volume2, Zap, Cpu, BookOpen } from "lucide-react";
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
@@ -183,6 +183,88 @@ AUDIO OUTPUT CHARACTERISTICS
   ⚠  Always connect the audio GND (sleeve / ring) to the circuit GND.
   ⚠  Set Windows volume to 100% for maximum gate/base drive.
   ⚠  Keep duty cycle between 5% and 95% for best results.`;
+
+// ─── How To Use ────────────────────────────────────────────────────────────
+
+function HowToUse() {
+  const Step = ({ n, title, children }: { n: number; title: string; children: React.ReactNode }) => (
+    <div className="flex gap-3">
+      <div className="shrink-0 w-6 h-6 rounded-full bg-[hsl(187_84%_40%/0.2)] border border-[hsl(187_84%_40%/0.4)] flex items-center justify-center text-xs font-bold text-[hsl(187_84%_54%)]">
+        {n}
+      </div>
+      <div className="pt-0.5 space-y-0.5">
+        <p className="text-sm font-medium text-foreground">{title}</p>
+        <div className="text-xs text-muted-foreground leading-relaxed">{children}</div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="space-y-5">
+      {/* Steps */}
+      <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+        <p className="text-sm font-semibold text-foreground">Quick Start</p>
+        <div className="space-y-4">
+          <Step n={1} title="Connect your cable">
+            Plug a 3.5 mm audio cable into your computer's headphone jack. Connect the other end to your circuit — MOSFET gate or BJT base via resistor.
+          </Step>
+          <Step n={2} title="Select the output device">
+            <span className="font-medium text-foreground">Online (this app):</span> choose your headphone jack from the dropdown — audio routes there directly.<br />
+            <span className="font-medium text-foreground">Offline file:</span> the dropdown is reference only. Go to <em>Windows Sound → Playback</em>, right-click your jack → <em>Set as Default Device</em>.
+          </Step>
+          <Step n={3} title="Set frequency">
+            Use the slider or type a value (20 Hz – 20 kHz). This is the PWM switching rate. <span className="font-medium text-foreground">1 kHz</span> is a good starting point for most loads.
+          </Step>
+          <Step n={4} title="Set duty cycle">
+            Use the slider or type a value. <span className="font-medium text-foreground">50%</span> = symmetric square wave. Stay between <span className="font-medium text-foreground">5% and 95%</span> — near the extremes the AC-coupled audio amp drifts toward zero.
+          </Step>
+          <Step n={5} title="Set Windows volume to 100%">
+            Click the speaker icon in the taskbar and drag volume to maximum. This gives your MOSFET or BJT the highest gate/base drive.
+          </Step>
+          <Step n={6} title="Click Start Output">
+            The green <span className="font-medium text-foreground">OUTPUT ACTIVE</span> badge confirms the signal is live. The waveform preview turns cyan.
+          </Step>
+          <Step n={7} title="Adjust in real time">
+            Move the sliders or type new values while running — frequency and duty cycle update instantly with no dropout.
+          </Step>
+          <Step n={8} title="Click Stop Output when done">
+            Always stop before disconnecting hardware to avoid voltage spikes on inductive loads.
+          </Step>
+        </div>
+      </div>
+
+      {/* Signal details */}
+      <div className="rounded-lg border border-border bg-card p-4 space-y-3">
+        <p className="text-sm font-semibold text-foreground">Signal Details</p>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 text-xs">
+          {([
+            ["Output level",    "≈ 0.5 – 1.5 V peak (volume at 100%)"],
+            ["Impedance",       "≈ 32 Ω (standard headphone amp)"],
+            ["Channels",        "Left and Right both carry the same signal"],
+            ["GND connection",  "Sleeve / ring of the 3.5 mm jack"],
+            ["Waveform",        "Hard-clipped square wave"],
+            ["Frequency range", "20 Hz – 20 kHz"],
+          ] as [string, string][]).map(([k, v]) => (
+            <div key={k}>
+              <p className="text-[hsl(187_84%_54%)] font-medium mb-0.5">{k}</p>
+              <p className="text-muted-foreground">{v}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Next steps callout */}
+      <div className="rounded-lg border border-[hsl(30_86%_57%/0.2)] bg-[hsl(30_86%_57%/0.05)] p-3">
+        <p className="text-xs text-[hsl(30_86%_57%)] font-medium mb-1">Next steps</p>
+        <p className="text-xs text-muted-foreground">
+          See the <span className="font-medium text-foreground">Hardware Guide</span> tab for complete MOSFET (IRLZ44N) and BJT (2N2222) wiring circuits, component values, and safety notes.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ─── Hardware Guide ────────────────────────────────────────────────────────
 
 function HardwareGuide() {
   return (
@@ -388,6 +470,9 @@ registerProcessor("pwm-processor", PWMProcessor);
             <TabsTrigger value="hardware" data-testid="tab-hardware" className="gap-2">
               <Cpu className="w-3.5 h-3.5" /> Hardware Guide
             </TabsTrigger>
+            <TabsTrigger value="howto" data-testid="tab-howto" className="gap-2">
+              <BookOpen className="w-3.5 h-3.5" /> How to Use
+            </TabsTrigger>
           </TabsList>
 
           {/* ── Control Tab ─────────────────────────────────────────────── */}
@@ -522,6 +607,11 @@ registerProcessor("pwm-processor", PWMProcessor);
           {/* ── Hardware Tab ────────────────────────────────────────────── */}
           <TabsContent value="hardware">
             <HardwareGuide />
+          </TabsContent>
+
+          {/* ── How To Use Tab ──────────────────────────────────────────── */}
+          <TabsContent value="howto">
+            <HowToUse />
           </TabsContent>
         </Tabs>
       </main>
