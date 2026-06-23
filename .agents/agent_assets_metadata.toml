@@ -1,3 +1,8 @@
 uploads = []
 generated = []
-outputs = []
+
+[[outputs]]
+id = "JTb8JmDDWvPV6hnplQnfA"
+uri = "file://artifacts/pwm-generator/dist/AudioPWMGenerator.zip"
+type = "unspecified"
+title = "AudioPWMGenerator.zip — single offline HTML file (134 KB)"

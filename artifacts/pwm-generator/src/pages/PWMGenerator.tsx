@@ -254,8 +254,43 @@ export default function PWMGenerator() {
   const startOutput = useCallback(async () => {
     try {
       const ctx = new AudioContext({ sampleRate: 44100 });
-      const workletUrl = `${import.meta.env.BASE_URL}pwm-worklet.js`;
+
+      // Inline the worklet as a Blob URL so it works from file:// (no server needed)
+      const workletSrc = `
+class PWMProcessor extends AudioWorkletProcessor {
+  constructor(options) {
+    super();
+    const opts = (options && options.processorOptions) || {};
+    this._frequency = opts.frequency || 1000;
+    this._dutyCycle = opts.dutyCycle || 0.5;
+    this._phase = 0;
+    this._amplitude = 0.85;
+    this.port.onmessage = (e) => {
+      const { type, value } = e.data;
+      if (type === "frequency") this._frequency = Math.max(20, Math.min(20000, value));
+      if (type === "dutyCycle") this._dutyCycle = Math.max(0, Math.min(1, value));
+    };
+  }
+  process(_inputs, outputs) {
+    const output = outputs[0];
+    if (!output || !output[0]) return true;
+    const numChannels = output.length;
+    const blockSize = output[0].length;
+    for (let i = 0; i < blockSize; i++) {
+      const period = sampleRate / this._frequency;
+      this._phase = (this._phase + 1) % period;
+      const sample = this._phase < period * this._dutyCycle ? this._amplitude : -this._amplitude;
+      for (let ch = 0; ch < numChannels; ch++) output[ch][i] = sample;
+    }
+    return true;
+  }
+}
+registerProcessor("pwm-processor", PWMProcessor);
+`;
+      const blob = new Blob([workletSrc], { type: "application/javascript" });
+      const workletUrl = URL.createObjectURL(blob);
       await ctx.audioWorklet.addModule(workletUrl);
+      URL.revokeObjectURL(workletUrl);
 
       const node = new AudioWorkletNode(ctx, "pwm-processor", {
         processorOptions: { frequency, dutyCycle: dutyCycle / 100 },
