@@ -446,7 +446,7 @@ registerProcessor("pwm-processor", PWMProcessor);
           </div>
           <div>
             <h1 className="text-lg font-semibold text-foreground tracking-tight">Lars Lentz's PWM Generator</h1>
-            <p className="text-xs text-muted-foreground">Square wave via headphone jack · Web Audio API · v1.02</p>
+            <p className="text-xs text-muted-foreground">Square wave via headphone jack · Web Audio API · v1.03</p>
           </div>
         </div>
         <Badge
@@ -571,10 +571,7 @@ registerProcessor("pwm-processor", PWMProcessor);
               />
               <div className="flex justify-between text-xs text-muted-foreground font-mono">
                 <span>0%</span>
-                {inverted
-                  ? <span className="font-semibold"><span className="text-muted-foreground">{dutyCycle.toFixed(1)}%</span><span className="text-[hsl(187_84%_54%)]"> → {effectiveDuty.toFixed(1)}% eff</span></span>
-                  : <span className="text-[hsl(187_84%_54%)] font-semibold">{dutyCycle.toFixed(1)}%</span>
-                }
+                <span className="text-[hsl(187_84%_54%)] font-semibold">{effectiveDuty.toFixed(1)}%</span>
                 <span>100%</span>
               </div>
             </div>
@@ -608,10 +605,7 @@ registerProcessor("pwm-processor", PWMProcessor);
               {isPlaying && (
                 <div data-testid="readout-active" className="text-sm font-mono text-muted-foreground text-right shrink-0">
                   <div className="text-[hsl(187_84%_54%)]">{formatFreq(frequency)}</div>
-                  {inverted
-                    ? <div><span className="opacity-60">{dutyCycle.toFixed(1)}%</span> → <span className="text-[hsl(187_84%_54%)]">{effectiveDuty.toFixed(1)}%</span></div>
-                    : <div>{dutyCycle.toFixed(1)}% duty</div>
-                  }
+                  <div>{effectiveDuty.toFixed(1)}% duty</div>
                 </div>
               )}
             </div>
