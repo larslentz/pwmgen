@@ -6,3 +6,9 @@ id = "JTb8JmDDWvPV6hnplQnfA"
 uri = "file://artifacts/pwm-generator/dist/AudioPWMGenerator.zip"
 type = "unspecified"
 title = "AudioPWMGenerator.zip — single offline HTML file (134 KB)"
+
+[[outputs]]
+id = "H1zbJtdm1aTQhBrd_e3du"
+uri = "file://artifacts/pwm-generator/dist/LarsLentzPWMGenerator.zip"
+type = "unspecified"
+title = "LarsLentzPWMGenerator.zip — offline single-file HTML (166 KB)"

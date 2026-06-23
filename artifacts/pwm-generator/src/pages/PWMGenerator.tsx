@@ -360,7 +360,7 @@ registerProcessor("pwm-processor", PWMProcessor);
             <Zap className="w-5 h-5 text-[hsl(187_84%_54%)]" />
           </div>
           <div>
-            <h1 className="text-lg font-semibold text-foreground tracking-tight">Audio PWM Generator</h1>
+            <h1 className="text-lg font-semibold text-foreground tracking-tight">Lars Lentz's PWM Generator</h1>
             <p className="text-xs text-muted-foreground">Square wave via headphone jack · Web Audio API</p>
           </div>
         </div>
