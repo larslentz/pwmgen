@@ -306,8 +306,10 @@ export default function PWMGenerator() {
   const [deviceId,    setDeviceId]    = useState<string>("default");
   const [freqInput,   setFreqInput]   = useState("1000");
   const [dutyInput,   setDutyInput]   = useState("50.0");
+  const [inverted,    setInverted]    = useState(false);
 
-  const frequency = logFreq(freqLinear);
+  const frequency     = logFreq(freqLinear);
+  const effectiveDuty = inverted ? 100 - dutyCycle : dutyCycle;
 
   const audioCtxRef = useRef<AudioContext | null>(null);
   const nodeRef     = useRef<AudioWorkletNode | null>(null);
@@ -376,7 +378,7 @@ registerProcessor("pwm-processor", PWMProcessor);
       await ctx.audioWorklet.addModule(workletUrl);
 
       const node = new AudioWorkletNode(ctx, "pwm-processor", {
-        processorOptions: { frequency, dutyCycle: dutyCycle / 100 },
+        processorOptions: { frequency, dutyCycle: effectiveDuty / 100 },
         numberOfOutputs: 1,
         outputChannelCount: [2],
       });
@@ -394,7 +396,7 @@ registerProcessor("pwm-processor", PWMProcessor);
       console.error("Audio start failed:", err);
       alert(`Could not start audio: ${err instanceof Error ? err.message : err}`);
     }
-  }, [frequency, dutyCycle, deviceId]);
+  }, [frequency, dutyCycle, effectiveDuty, deviceId]);
 
   const stopOutput = useCallback(() => {
     nodeRef.current?.disconnect();
@@ -406,7 +408,7 @@ registerProcessor("pwm-processor", PWMProcessor);
 
   // Live-update processor when sliders change while playing
   useEffect(() => { if (isPlaying) sendParam("frequency", frequency); },  [frequency, isPlaying, sendParam]);
-  useEffect(() => { if (isPlaying) sendParam("dutyCycle", dutyCycle / 100); }, [dutyCycle, isPlaying, sendParam]);
+  useEffect(() => { if (isPlaying) sendParam("dutyCycle", effectiveDuty / 100); }, [effectiveDuty, isPlaying, sendParam]);
 
   // Cleanup on unmount
   useEffect(() => () => { stopOutput(); }, [stopOutput]);
@@ -533,7 +535,20 @@ registerProcessor("pwm-processor", PWMProcessor);
             {/* Duty Cycle */}
             <div className="space-y-3 rounded-lg border border-border bg-card p-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-foreground">Duty Cycle</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-foreground">Duty Cycle</span>
+                  <button
+                    data-testid="button-invert"
+                    onClick={() => setInverted(v => !v)}
+                    className={`text-xs px-2 py-0.5 rounded border font-medium transition-colors ${
+                      inverted
+                        ? "border-[hsl(187_84%_54%/0.6)] bg-[hsl(187_84%_54%/0.12)] text-[hsl(187_84%_54%)]"
+                        : "border-border text-muted-foreground hover:border-[hsl(187_84%_54%/0.4)] hover:text-[hsl(187_84%_54%)]"
+                    }`}
+                  >
+                    {inverted ? "⇄ Inverted" : "⇄ Invert"}
+                  </button>
+                </div>
                 <div className="flex items-center gap-2">
                   <input
                     data-testid="input-duty"
@@ -556,15 +571,21 @@ registerProcessor("pwm-processor", PWMProcessor);
               />
               <div className="flex justify-between text-xs text-muted-foreground font-mono">
                 <span>0%</span>
-                <span className="text-[hsl(187_84%_54%)] font-semibold">{dutyCycle.toFixed(1)}%</span>
+                {inverted
+                  ? <span className="font-semibold"><span className="text-muted-foreground">{dutyCycle.toFixed(1)}%</span><span className="text-[hsl(187_84%_54%)]"> → {effectiveDuty.toFixed(1)}% eff</span></span>
+                  : <span className="text-[hsl(187_84%_54%)] font-semibold">{dutyCycle.toFixed(1)}%</span>
+                }
                 <span>100%</span>
               </div>
             </div>
 
             {/* Waveform Preview */}
             <div className="space-y-2">
-              <span className="text-sm text-muted-foreground">Waveform Preview</span>
-              <WaveformPreview frequency={frequency} dutyCycle={dutyCycle} active={isPlaying} />
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Waveform Preview</span>
+                {inverted && <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-[hsl(187_84%_54%/0.1)] border border-[hsl(187_84%_54%/0.3)] text-[hsl(187_84%_54%)]">INVERTED</span>}
+              </div>
+              <WaveformPreview frequency={frequency} dutyCycle={effectiveDuty} active={isPlaying} />
             </div>
 
             {/* Start / Stop */}
@@ -587,7 +608,10 @@ registerProcessor("pwm-processor", PWMProcessor);
               {isPlaying && (
                 <div data-testid="readout-active" className="text-sm font-mono text-muted-foreground text-right shrink-0">
                   <div className="text-[hsl(187_84%_54%)]">{formatFreq(frequency)}</div>
-                  <div>{dutyCycle.toFixed(1)}% duty</div>
+                  {inverted
+                    ? <div><span className="opacity-60">{dutyCycle.toFixed(1)}%</span> → <span className="text-[hsl(187_84%_54%)]">{effectiveDuty.toFixed(1)}%</span></div>
+                    : <div>{dutyCycle.toFixed(1)}% duty</div>
+                  }
                 </div>
               )}
             </div>
