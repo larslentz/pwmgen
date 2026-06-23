@@ -4,7 +4,7 @@ import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Play, Square, Volume2, Zap, Cpu, BookOpen } from "lucide-react";
+import { Play, Square, Volume2, Zap, Cpu, BookOpen, Settings } from "lucide-react";
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
@@ -307,8 +307,15 @@ export default function PWMGenerator() {
   const [freqInput,   setFreqInput]   = useState("1000");
   const [dutyInput,   setDutyInput]   = useState("50.0");
   const [inverted,    setInverted]    = useState(false);
+  const [amplitude,   setAmplitude]   = useState(100);   // % of max (100 = 0.85 full scale)
+  const [riseTime,    setRiseTime]    = useState(0);      // µs (0 = instant)
+  const [deadBand,    setDeadBand]    = useState(0);      // % of period (0 = none)
+  const [shapeOpen,   setShapeOpen]   = useState(false);
 
-  const frequency = logFreq(freqLinear);
+  const frequency     = logFreq(freqLinear);
+  const amplitudeGain = (amplitude / 100) * 0.85;
+  const alphaRT       = riseTime > 0 ? Math.exp(-2.3 / (riseTime * 1e-6 * 44100)) : 0;
+  const deadBandFrac  = deadBand / 100;
 
   const audioCtxRef = useRef<AudioContext | null>(null);
   const nodeRef     = useRef<AudioWorkletNode | null>(null);
@@ -347,25 +354,43 @@ class PWMProcessor extends AudioWorkletProcessor {
     super();
     const opts = (options && options.processorOptions) || {};
     this._frequency = opts.frequency || 1000;
-    this._dutyCycle = opts.dutyCycle || 0.5;
+    this._dutyCycle = opts.dutyCycle != null ? opts.dutyCycle : 0.5;
+    this._amplitude = opts.amplitude != null ? opts.amplitude : 0.85;
+    this._alpha     = opts.alpha     != null ? opts.alpha     : 0;
+    this._deadBand  = opts.deadBand  != null ? opts.deadBand  : 0;
     this._phase = 0;
-    this._amplitude = 0.85;
+    this._slew  = 0;
     this.port.onmessage = (e) => {
       const { type, value } = e.data;
       if (type === "frequency") this._frequency = Math.max(20, Math.min(20000, value));
       if (type === "dutyCycle") this._dutyCycle = Math.max(0, Math.min(1, value));
+      if (type === "amplitude") this._amplitude = Math.max(0, Math.min(1, value));
+      if (type === "alpha")     this._alpha     = Math.max(0, Math.min(0.9999, value));
+      if (type === "deadBand")  this._deadBand  = Math.max(0, Math.min(0.49, value));
     };
   }
   process(_inputs, outputs) {
     const output = outputs[0];
     if (!output || !output[0]) return true;
     const numChannels = output.length;
-    const blockSize = output[0].length;
+    const blockSize   = output[0].length;
     for (let i = 0; i < blockSize; i++) {
-      const period = sampleRate / this._frequency;
-      this._phase = (this._phase + 1) % period;
-      const sample = this._phase < period * this._dutyCycle ? this._amplitude : -this._amplitude;
-      for (let ch = 0; ch < numChannels; ch++) output[ch][i] = sample;
+      const period   = sampleRate / this._frequency;
+      this._phase    = (this._phase + 1) % period;
+      const p    = this._phase;
+      const duty = this._dutyCycle;
+      const db   = this._deadBand;
+      const amp  = this._amplitude;
+      const highEnd  = duty * period;
+      const dead1End = highEnd + db * 0.5 * period;
+      const lowEnd   = period * (1 - db * 0.5);
+      let target;
+      if      (p < highEnd)  target =  amp;
+      else if (p < dead1End) target =  0;
+      else if (p < lowEnd)   target = -amp;
+      else                   target =  0;
+      this._slew = this._alpha * this._slew + (1 - this._alpha) * target;
+      for (let ch = 0; ch < numChannels; ch++) output[ch][i] = this._slew;
     }
     return true;
   }
@@ -377,7 +402,7 @@ registerProcessor("pwm-processor", PWMProcessor);
       await ctx.audioWorklet.addModule(workletUrl);
 
       const node = new AudioWorkletNode(ctx, "pwm-processor", {
-        processorOptions: { frequency, dutyCycle: dutyCycle / 100 },
+        processorOptions: { frequency, dutyCycle: dutyCycle / 100, amplitude: amplitudeGain, alpha: alphaRT, deadBand: deadBandFrac },
         numberOfOutputs: 1,
         outputChannelCount: [2],
       });
@@ -406,8 +431,11 @@ registerProcessor("pwm-processor", PWMProcessor);
   }, []);
 
   // Live-update processor when sliders change while playing
-  useEffect(() => { if (isPlaying) sendParam("frequency", frequency); },  [frequency, isPlaying, sendParam]);
-  useEffect(() => { if (isPlaying) sendParam("dutyCycle", dutyCycle / 100); }, [dutyCycle, isPlaying, sendParam]);
+  useEffect(() => { if (isPlaying) sendParam("frequency",  frequency); },          [frequency,     isPlaying, sendParam]);
+  useEffect(() => { if (isPlaying) sendParam("dutyCycle",  dutyCycle / 100); },    [dutyCycle,     isPlaying, sendParam]);
+  useEffect(() => { if (isPlaying) sendParam("amplitude",  amplitudeGain); },      [amplitudeGain, isPlaying, sendParam]);
+  useEffect(() => { if (isPlaying) sendParam("alpha",      alphaRT); },            [alphaRT,       isPlaying, sendParam]);
+  useEffect(() => { if (isPlaying) sendParam("deadBand",   deadBandFrac); },       [deadBandFrac,  isPlaying, sendParam]);
 
   // Cleanup on unmount
   useEffect(() => () => { stopOutput(); }, [stopOutput]);
@@ -448,17 +476,29 @@ registerProcessor("pwm-processor", PWMProcessor);
             <p className="text-xs text-muted-foreground">Square wave via headphone jack · Web Audio API · v1.03</p>
           </div>
         </div>
-        <Badge
-          data-testid="status-badge"
-          variant="outline"
-          className={isPlaying
-            ? "border-[hsl(142_71%_45%/0.5)] text-[hsl(142_71%_45%)] bg-[hsl(142_71%_45%/0.08)]"
-            : "border-border text-muted-foreground"
-          }
-        >
-          <span className={`mr-1.5 inline-block w-1.5 h-1.5 rounded-full ${isPlaying ? "bg-[hsl(142_71%_45%)] animate-pulse" : "bg-muted-foreground"}`} />
-          {isPlaying ? "OUTPUT ACTIVE" : "Stopped"}
-        </Badge>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShapeOpen(v => !v)}
+            className={`text-xs px-2.5 py-1 rounded border font-medium flex items-center gap-1.5 transition-colors ${
+              shapeOpen
+                ? "border-[hsl(187_84%_54%/0.6)] bg-[hsl(187_84%_54%/0.12)] text-[hsl(187_84%_54%)]"
+                : "border-border text-muted-foreground hover:border-[hsl(187_84%_54%/0.4)] hover:text-[hsl(187_84%_54%)]"
+            }`}
+          >
+            <Settings className="w-3.5 h-3.5" /> Wave Shape
+          </button>
+          <Badge
+            data-testid="status-badge"
+            variant="outline"
+            className={isPlaying
+              ? "border-[hsl(142_71%_45%/0.5)] text-[hsl(142_71%_45%)] bg-[hsl(142_71%_45%/0.08)]"
+              : "border-border text-muted-foreground"
+            }
+          >
+            <span className={`mr-1.5 inline-block w-1.5 h-1.5 rounded-full ${isPlaying ? "bg-[hsl(142_71%_45%)] animate-pulse" : "bg-muted-foreground"}`} />
+            {isPlaying ? "OUTPUT ACTIVE" : "Stopped"}
+          </Badge>
+        </div>
       </header>
 
       {/* Body */}
@@ -477,7 +517,9 @@ registerProcessor("pwm-processor", PWMProcessor);
           </TabsList>
 
           {/* ── Control Tab ─────────────────────────────────────────────── */}
-          <TabsContent value="control" className="space-y-6">
+          <TabsContent value="control">
+            <div className="flex gap-4 items-start">
+            <div className="flex-1 min-w-0 space-y-6">
 
             {/* Device Selector */}
             <div className="space-y-2">
@@ -623,6 +665,69 @@ registerProcessor("pwm-processor", PWMProcessor);
                 <li>Works in Chrome, Edge, and Firefox — enable autoplay if prompted</li>
               </ul>
             </div>
+            </div>{/* end main col */}
+
+            {/* ── Wave Shape Side Panel ──────────────────────────────────── */}
+            {shapeOpen && (
+              <div className="w-48 shrink-0 space-y-3">
+                <p className="text-xs font-semibold text-foreground flex items-center gap-1.5 pb-0.5">
+                  <Settings className="w-3.5 h-3.5 text-[hsl(187_84%_54%)]" /> Wave Shape
+                </p>
+
+                {/* Amplitude */}
+                <div className="rounded-lg border border-border bg-card p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-foreground">Amplitude</span>
+                    <span className="text-xs font-mono text-[hsl(187_84%_54%)]">{amplitude}%</span>
+                  </div>
+                  <Slider min={0} max={100} step={1} value={[amplitude]}
+                    onValueChange={v => setAmplitude(v[0])}
+                    className="[&_[role=slider]]:bg-[hsl(187_84%_40%)] [&_[role=slider]]:border-[hsl(187_84%_54%)] [&_.bg-primary]:bg-[hsl(187_84%_40%)]"
+                  />
+                  <div className="flex justify-between text-[10px] text-muted-foreground font-mono">
+                    <span>0%</span><span>100%</span>
+                  </div>
+                </div>
+
+                {/* Rise Time */}
+                <div className="rounded-lg border border-border bg-card p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-foreground">Rise Time</span>
+                    <span className="text-xs font-mono text-[hsl(187_84%_54%)]">{riseTime} µs</span>
+                  </div>
+                  <Slider min={0} max={500} step={5} value={[riseTime]}
+                    onValueChange={v => setRiseTime(v[0])}
+                    className="[&_[role=slider]]:bg-[hsl(187_84%_40%)] [&_[role=slider]]:border-[hsl(187_84%_54%)] [&_.bg-primary]:bg-[hsl(187_84%_40%)]"
+                  />
+                  <div className="flex justify-between text-[10px] text-muted-foreground font-mono">
+                    <span>0 µs</span><span>500 µs</span>
+                  </div>
+                </div>
+
+                {/* Dead Band */}
+                <div className="rounded-lg border border-border bg-card p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-foreground">Dead Band</span>
+                    <span className="text-xs font-mono text-[hsl(187_84%_54%)]">{Number.isInteger(deadBand) ? deadBand : deadBand.toFixed(1)}%</span>
+                  </div>
+                  <Slider min={0} max={20} step={0.5} value={[deadBand]}
+                    onValueChange={v => setDeadBand(v[0])}
+                    className="[&_[role=slider]]:bg-[hsl(187_84%_40%)] [&_[role=slider]]:border-[hsl(187_84%_54%)] [&_.bg-primary]:bg-[hsl(187_84%_40%)]"
+                  />
+                  <div className="flex justify-between text-[10px] text-muted-foreground font-mono">
+                    <span>0%</span><span>20%</span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => { setAmplitude(100); setRiseTime(0); setDeadBand(0); }}
+                  className="w-full text-xs px-2 py-1.5 rounded border border-border text-muted-foreground hover:border-[hsl(187_84%_54%/0.4)] hover:text-[hsl(187_84%_54%)] transition-colors"
+                >
+                  Reset Defaults
+                </button>
+              </div>
+            )}
+            </div>{/* end flex row */}
           </TabsContent>
 
           {/* ── Hardware Tab ────────────────────────────────────────────── */}
