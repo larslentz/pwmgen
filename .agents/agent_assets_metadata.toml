@@ -1,14 +1,3 @@
 uploads = []
 generated = []
-
-[[outputs]]
-id = "zm40TFMX6DjOIUdWHygMr"
-uri = "file://pwm_generator/AudioPWMGenerator.zip"
-type = "unspecified"
-title = "AudioPWMGenerator.zip — full app package"
-
-[[outputs]]
-id = "bvsG1dF6V_mqLuYbleom0"
-uri = "file://pwm_generator/README.md"
-type = "text"
-title = "README — setup & circuit wiring guide"
+outputs = []
