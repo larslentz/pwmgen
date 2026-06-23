@@ -230,10 +230,12 @@ export default function PWMGenerator() {
   const audioCtxRef = useRef<AudioContext | null>(null);
   const nodeRef     = useRef<AudioWorkletNode | null>(null);
 
-  // Enumerate output devices
+  // Enumerate output devices — only works in secure contexts (HTTPS / localhost)
   useEffect(() => {
     async function loadDevices() {
       try {
+        if (!navigator.mediaDevices?.enumerateDevices) return;
+        // Try to get a mic permission so Chrome populates device labels
         await navigator.mediaDevices.getUserMedia({ audio: true }).catch(() => {});
         const all = await navigator.mediaDevices.enumerateDevices();
         const outs = all
@@ -241,7 +243,7 @@ export default function PWMGenerator() {
           .map(d => ({ deviceId: d.deviceId, label: d.label || `Speaker ${d.deviceId.slice(0, 6)}` }));
         if (outs.length) setDevices(outs);
       } catch {
-        // permissions not granted, use default
+        // file:// context or no permission — fall back to default device
       }
     }
     loadDevices();
@@ -287,10 +289,9 @@ class PWMProcessor extends AudioWorkletProcessor {
 }
 registerProcessor("pwm-processor", PWMProcessor);
 `;
-      const blob = new Blob([workletSrc], { type: "application/javascript" });
-      const workletUrl = URL.createObjectURL(blob);
+      // Use data: URI instead of blob: URL — blob:null/ URLs are blocked in file:// context
+      const workletUrl = `data:application/javascript;charset=utf-8,${encodeURIComponent(workletSrc)}`;
       await ctx.audioWorklet.addModule(workletUrl);
-      URL.revokeObjectURL(workletUrl);
 
       const node = new AudioWorkletNode(ctx, "pwm-processor", {
         processorOptions: { frequency, dutyCycle: dutyCycle / 100 },
