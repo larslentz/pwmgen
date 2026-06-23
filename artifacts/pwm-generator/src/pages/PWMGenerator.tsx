@@ -444,7 +444,7 @@ registerProcessor("pwm-processor", PWMProcessor);
           </div>
           <div>
             <h1 className="text-lg font-semibold text-foreground tracking-tight">Lars Lentz's PWM Generator</h1>
-            <p className="text-xs text-muted-foreground">Square wave via headphone jack · Web Audio API</p>
+            <p className="text-xs text-muted-foreground">Square wave via headphone jack · Web Audio API · v1.02</p>
           </div>
         </div>
         <Badge
