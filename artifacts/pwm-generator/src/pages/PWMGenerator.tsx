@@ -4,7 +4,7 @@ import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Play, Square, Volume2, Zap, Cpu, BookOpen } from "lucide-react";
+import { Play, Square, Volume2, Zap, Cpu } from "lucide-react";
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
@@ -117,191 +117,6 @@ function WaveformPreview({ frequency, dutyCycle, active }: { frequency: number; 
       className="w-full rounded-md bg-[hsl(215_28%_6%)] border border-border"
       style={{ height: 110 }}
     />
-  );
-}
-
-// ─── Frequency Spectrum Preview ────────────────────────────────────────────
-
-function FrequencyPreview({ frequency, dutyCycle, active }: { frequency: number; dutyCycle: number; active: boolean }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const W = canvas.width;
-    const H = canvas.height;
-    const padL = 36, padR = 12, padTop = 12, padBot = 24;
-    const drawW = W - padL - padR;
-    const drawH = H - padTop - padBot;
-    const maxFreq = 20000;
-    const d = dutyCycle / 100;
-
-    ctx.clearRect(0, 0, W, H);
-
-    // Background grid
-    ctx.strokeStyle = "#0f172a";
-    ctx.lineWidth = 1;
-    ctx.setLineDash([2, 6]);
-    for (let i = 1; i <= 3; i++) {
-      const y = padTop + drawH * (1 - i / 4);
-      ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + drawW, y); ctx.stroke();
-    }
-    ctx.setLineDash([]);
-
-    // Axes
-    ctx.strokeStyle = "#1e293b";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(padL, padTop);
-    ctx.lineTo(padL, padTop + drawH);
-    ctx.lineTo(padL + drawW, padTop + drawH);
-    ctx.stroke();
-
-    // X-axis ticks
-    ctx.fillStyle = "#334155";
-    ctx.font = "9px 'JetBrains Mono', monospace";
-    ctx.textAlign = "center";
-    [5000, 10000, 15000, 20000].forEach(f => {
-      const x = padL + (f / maxFreq) * drawW;
-      ctx.strokeStyle = "#1e293b";
-      ctx.beginPath(); ctx.moveTo(x, padTop + drawH); ctx.lineTo(x, padTop + drawH + 3); ctx.stroke();
-      ctx.fillText(f >= 1000 ? `${f / 1000}k` : `${f}`, x, padTop + drawH + 13);
-    });
-
-    // Y-axis label
-    ctx.save();
-    ctx.fillStyle = "#334155";
-    ctx.font = "9px 'JetBrains Mono', monospace";
-    ctx.textAlign = "center";
-    ctx.translate(10, padTop + drawH / 2);
-    ctx.rotate(-Math.PI / 2);
-    ctx.fillText("AMP", 0, 0);
-    ctx.restore();
-
-    // "Hz" at bottom right
-    ctx.fillStyle = "#334155";
-    ctx.textAlign = "right";
-    ctx.fillText("Hz", padL + drawW, padTop + drawH + 13);
-    ctx.textAlign = "left";
-
-    // Compute harmonics
-    type Harmonic = { n: number; f: number; amp: number };
-    const harmonics: Harmonic[] = [];
-    let maxAmp = 0;
-    for (let n = 1; n * frequency <= maxFreq + frequency; n++) {
-      const f = n * frequency;
-      if (f > maxFreq) break;
-      const amp = Math.abs((2 / (n * Math.PI)) * Math.sin(n * Math.PI * d));
-      harmonics.push({ n, f, amp });
-      if (amp > maxAmp) maxAmp = amp;
-    }
-    if (maxAmp === 0) maxAmp = 1;
-
-    // Bar width: adaptive
-    const barW = Math.max(2, Math.min(14, (drawW / (maxFreq / frequency)) * 0.6));
-
-    harmonics.forEach(({ n, f, amp }) => {
-      const x = padL + (f / maxFreq) * drawW;
-      const barH = (amp / maxAmp) * drawH * 0.88;
-      const y = padTop + drawH - barH;
-      const isFund = n === 1;
-      ctx.fillStyle = active
-        ? (isFund ? "hsl(187,84%,54%)" : "hsla(187,84%,54%,0.38)")
-        : (isFund ? "#1e4060" : "rgba(30,64,96,0.45)");
-      ctx.fillRect(x - barW / 2, y, barW, barH);
-
-      // Label f1 and 3f
-      if ((isFund || n === 3) && f <= maxFreq * 0.92) {
-        ctx.fillStyle = active ? (isFund ? "hsl(187,84%,54%)" : "hsla(187,84%,54%,0.7)") : "#334155";
-        ctx.font = "9px 'JetBrains Mono', monospace";
-        ctx.textAlign = "center";
-        ctx.fillText(isFund ? "f\u2081" : "3f", x, y - 3);
-      }
-    });
-
-    ctx.textAlign = "left";
-  }, [frequency, dutyCycle, active]);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      width={600}
-      height={110}
-      data-testid="frequency-canvas"
-      className="w-full rounded-md bg-[hsl(215_28%_6%)] border border-border"
-      style={{ height: 110 }}
-    />
-  );
-}
-
-// ─── How To Use ────────────────────────────────────────────────────────────
-
-function HowToUse() {
-  return (
-    <div className="space-y-5" data-testid="how-to-use">
-      <div className="rounded-lg border border-border bg-card p-4 space-y-3">
-        <h2 className="text-sm font-semibold text-foreground">Quick Start</h2>
-        <ol className="space-y-2">
-          {([
-            "Plug a 3.5mm audio cable into your laptop's headphone jack.",
-            "On the PWM Control tab, select the correct audio output device from the dropdown.",
-            "Set your desired frequency and duty cycle using the sliders or number inputs.",
-            <span>Click <strong className="text-foreground">Start Output</strong> — the square wave begins immediately.</span>,
-            <span>Click <strong className="text-foreground">Stop Output</strong> to end the signal at any time.</span>,
-          ] as React.ReactNode[]).map((item, i) => (
-            <li key={i} className="flex gap-3 text-sm text-muted-foreground">
-              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[hsl(187_84%_40%/0.2)] border border-[hsl(187_84%_54%/0.3)] text-[hsl(187_84%_54%)] text-xs flex items-center justify-center font-semibold">
-                {i + 1}
-              </span>
-              <span className="leading-relaxed">{item}</span>
-            </li>
-          ))}
-        </ol>
-      </div>
-
-      <div className="rounded-lg border border-border bg-card p-4 space-y-3">
-        <h2 className="text-sm font-semibold text-foreground">Controls Explained</h2>
-        <dl className="space-y-3">
-          {([
-            ["Frequency", "Sets the switching frequency (20 Hz – 20 kHz). Use lower values for motors and relays; higher values for LED drivers and switching power circuits."],
-            ["Duty Cycle", "The fraction of each cycle the output is HIGH. 50% = equal on/off time. 10% = 10% on, 90% off. Controls average power delivered to the load."],
-            ["Waveform Preview", "Time-domain view: shows the shape of the square wave and labels the period (T)."],
-            ["Frequency Spectrum", "Frequency-domain view: bars show the fundamental (f₁) and all harmonics present below 20 kHz. Duty cycles other than 50% produce even harmonics in addition to odd ones."],
-          ] as [string, string][]).map(([term, def]) => (
-            <div key={term}>
-              <dt className="text-xs font-semibold text-[hsl(187_84%_54%)] mb-0.5">{term}</dt>
-              <dd className="text-xs text-muted-foreground leading-relaxed">{def}</dd>
-            </div>
-          ))}
-        </dl>
-      </div>
-
-      <div className="rounded-lg border border-border bg-card p-4 space-y-2">
-        <h2 className="text-sm font-semibold text-foreground">Jack Pinout</h2>
-        <p className="text-xs text-muted-foreground leading-relaxed">
-          Wire the signal wire through a resistor to your MOSFET gate or BJT base. Use the sleeve as GND. See the <strong className="text-foreground">Hardware Guide</strong> tab for full circuit diagrams.
-        </p>
-        <pre className="mt-2 rounded bg-[hsl(215_28%_6%)] border border-border p-3 text-xs font-mono text-muted-foreground leading-relaxed">{
-`Laptop 3.5mm jack:
-  Tip    → Left channel  (PWM signal)
-  Ring   → Right channel (same PWM signal)
-  Sleeve → GND (connect to circuit GND)`
-        }</pre>
-      </div>
-
-      <div className="rounded-lg border border-[hsl(30_86%_57%/0.2)] bg-[hsl(30_86%_57%/0.05)] p-4 space-y-2">
-        <h2 className="text-sm font-semibold text-[hsl(30_86%_57%)]">Troubleshooting</h2>
-        <ul className="space-y-2 text-xs text-muted-foreground list-disc list-inside">
-          <li><strong className="text-foreground">Weak or no gate drive</strong> — set Windows volume to 100%; some amps output only ~0.5 V at lower volumes.</li>
-          <li><strong className="text-foreground">Signal drifts near 0% or 100% duty</strong> — audio amplifiers are AC-coupled; stay between 5% and 95%.</li>
-          <li><strong className="text-foreground">Browser blocks audio</strong> — click anywhere on the page first, then press Start (browsers require a user gesture).</li>
-          <li><strong className="text-foreground">Audio plays through speakers, not the jack</strong> — select the correct output device from the dropdown on the PWM Control tab.</li>
-        </ul>
-      </div>
-    </div>
   );
 }
 
@@ -569,9 +384,6 @@ registerProcessor("pwm-processor", PWMProcessor);
             <TabsTrigger value="control" data-testid="tab-control" className="gap-2">
               <Zap className="w-3.5 h-3.5" /> PWM Control
             </TabsTrigger>
-            <TabsTrigger value="howto" data-testid="tab-howto" className="gap-2">
-              <BookOpen className="w-3.5 h-3.5" /> How to Use
-            </TabsTrigger>
             <TabsTrigger value="hardware" data-testid="tab-hardware" className="gap-2">
               <Cpu className="w-3.5 h-3.5" /> Hardware Guide
             </TabsTrigger>
@@ -669,12 +481,6 @@ registerProcessor("pwm-processor", PWMProcessor);
               <WaveformPreview frequency={frequency} dutyCycle={dutyCycle} active={isPlaying} />
             </div>
 
-            {/* Frequency Spectrum */}
-            <div className="space-y-2">
-              <span className="text-sm text-muted-foreground">Frequency Spectrum</span>
-              <FrequencyPreview frequency={frequency} dutyCycle={dutyCycle} active={isPlaying} />
-            </div>
-
             {/* Start / Stop */}
             <div className="flex items-center gap-4 pt-2">
               <Button
@@ -710,11 +516,6 @@ registerProcessor("pwm-processor", PWMProcessor);
                 <li>Works in Chrome, Edge, and Firefox — enable autoplay if prompted</li>
               </ul>
             </div>
-          </TabsContent>
-
-          {/* ── How To Use Tab ──────────────────────────────────────────── */}
-          <TabsContent value="howto">
-            <HowToUse />
           </TabsContent>
 
           {/* ── Hardware Tab ────────────────────────────────────────────── */}
