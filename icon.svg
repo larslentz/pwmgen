@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background -->
+  <rect width="512" height="512" rx="80" fill="#0d1820"/>
+  <!-- PWM square wave shape -->
+  <polyline
+    points="60,340 60,172 152,172 152,340 244,340 244,172 336,172 336,340 428,340 428,172 512,172"
+    fill="none"
+    stroke="#22d3ee"
+    stroke-width="36"
+    stroke-linecap="square"
+    stroke-linejoin="miter"
+  />
+  <!-- Lightning bolt overlay (small, top-right) -->
+  <polygon
+    points="338,64 310,200 356,200 320,328 420,160 364,160 400,64"
+    fill="#22d3ee"
+    opacity="0.18"
+  />
+</svg>

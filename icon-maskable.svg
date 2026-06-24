@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Full bleed background for maskable (no border radius — OS clips it) -->
+  <rect width="512" height="512" fill="#0d1820"/>
+  <!-- PWM square wave — scaled to fit within the maskable safe zone (inner ~60%) -->
+  <!-- Safe zone: 160px padding each side → content from x=160 to x=352, y=160 to y=352 -->
+  <polyline
+    points="100,330 100,182 170,182 170,330 256,330 256,182 342,182 342,330 412,330 412,182 460,182"
+    fill="none"
+    stroke="#22d3ee"
+    stroke-width="30"
+    stroke-linecap="square"
+    stroke-linejoin="miter"
+  />
+</svg>
