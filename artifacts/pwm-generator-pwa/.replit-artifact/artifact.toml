@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/pwm-generator-pwa/"
+title = "PWM Generator PWA"
+version = "1.0.0"
+id = "artifacts/pwm-generator-pwa"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/pwm-generator-pwa/" ]
+localPort = 19569
+
+[services.development]
+run = "pnpm --filter @workspace/pwm-generator-pwa run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/pwm-generator-pwa", "run", "build" ]
+publicDir = "artifacts/pwm-generator-pwa/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19569"
+BASE_PATH = "/pwm-generator-pwa/"
