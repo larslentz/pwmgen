@@ -4,7 +4,7 @@ import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Play, Square, Volume2, Zap, Cpu, BookOpen, Settings, Download } from "lucide-react";
+import { Play, Square, Volume2, Zap, Cpu, BookOpen, Settings, Download, RefreshCw } from "lucide-react";
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
@@ -282,6 +282,40 @@ function HardwareGuide() {
   );
 }
 
+// ─── PWA Update Banner ────────────────────────────────────────────────────
+
+function UpdateBanner() {
+  const [updateSW, setUpdateSW] = useState<((reload?: boolean) => Promise<void>) | null>(null);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.updateSW) setUpdateSW(() => detail.updateSW);
+    };
+    window.addEventListener("pwa-update-available", handler);
+    return () => window.removeEventListener("pwa-update-available", handler);
+  }, []);
+
+  if (!updateSW) return null;
+
+  return (
+    <div className="mx-4 mt-3 rounded-lg border border-[hsl(30_86%_57%/0.4)] bg-[hsl(30_86%_57%/0.07)] px-4 py-3 flex items-center justify-between gap-3">
+      <div className="flex items-center gap-2 min-w-0">
+        <RefreshCw className="w-4 h-4 text-[hsl(30_86%_57%)] shrink-0" />
+        <p className="text-xs text-muted-foreground">
+          <span className="font-medium text-foreground">New version available</span> — tap to reload and update
+        </p>
+      </div>
+      <button
+        onClick={() => updateSW(true)}
+        className="text-xs px-3 py-1.5 rounded bg-[hsl(30_86%_57%/0.2)] border border-[hsl(30_86%_57%/0.4)] text-[hsl(30_86%_57%)] font-semibold hover:bg-[hsl(30_86%_57%/0.3)] transition-colors shrink-0"
+      >
+        Update
+      </button>
+    </div>
+  );
+}
+
 // ─── PWA Install Banner ────────────────────────────────────────────────────
 
 function InstallBanner() {
@@ -529,7 +563,8 @@ registerProcessor("pwm-processor", PWMProcessor);
         </div>
       </header>
 
-      {/* PWA Install Banner */}
+      {/* PWA Banners */}
+      <UpdateBanner />
       <InstallBanner />
 
       {/* Body */}
