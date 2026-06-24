@@ -12,3 +12,9 @@ id = "H1zbJtdm1aTQhBrd_e3du"
 uri = "file://artifacts/pwm-generator/dist/LarsLentzPWMGenerator.zip"
 type = "unspecified"
 title = "LarsLentzPWMGenerator.zip — Invert flips slider (40 KB)"
+
+[[outputs]]
+id = "LU993ZhmbQV5AIqRRxvWs"
+uri = "file://artifacts/pwm-generator-pwa/dist/LarsLentzPWMGeneratorPWA.zip"
+type = "unspecified"
+title = "LarsLentzPWMGeneratorPWA.zip"
