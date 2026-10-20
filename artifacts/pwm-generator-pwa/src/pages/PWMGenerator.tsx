@@ -4,7 +4,7 @@ import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Play, Square, Volume2, Zap, Cpu, BookOpen, Settings, Download, RefreshCw } from "lucide-react";
+import { Play, Square, Volume2, Zap, BookOpen, Settings, Download, RefreshCw } from "lucide-react";
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
@@ -115,70 +115,6 @@ function WaveformPreview({ frequency, dutyCycle, active }: { frequency: number; 
   );
 }
 
-// ─── Hardware Guide ────────────────────────────────────────────────────────
-
-const MOSFET_GUIDE = `CIRCUIT A — IRLZ44N MOSFET (Recommended)
-Logic-level gate: works directly from the headphone/audio jack
-
-  12 V (+) ──────────────────────── Load (+)
-                                       │
-                                     [LOAD]  ← motor, LED strip, relay
-                                       │
-  IRLZ44N:                           Drain (D)
-                                       │
-   Audio L/R ──[10 kΩ]──── Gate (G) ──┤  IRLZ44N
-                                       │
-   Audio GND ──────────── Source (S) ──┘
-        │                              │
-        └──────────────────────────────┴──── 12 V GND (-)
-
-  Recommended extras:
-    • 10 kΩ pull-down between Gate and Source (clean OFF state)
-    • Flyback diode across load if inductive (motor, solenoid, relay)
-
-  Notes:
-    • IRLZ44N Vgs(th) ≈ 1–2 V. The audio output (~1 Vpp) may only
-      partially open the gate at low volume. Set system volume to 100%.
-    • Max drain current: 47 A. Rds(on): 22 mΩ. Add heatsink above 5 A.
-    • Best working range: 5%–95% duty cycle (audio amp is AC-coupled;
-      near 0% or 100% the signal drifts slowly rather than holding DC).
-
-─────────────────────────────────────────────────────────────────────
-
-CIRCUIT B — NPN BJT: 2N2222 / BC547 (Alternative)
-Works well for small loads (fans, LEDs, small motors < 600 mA)
-
-  12 V (+) ──────────────────────── Load (+)
-                                       │
-                                     [LOAD]
-                                       │
-                                    Collector (C)
-                                       │
-   Audio L/R ──[1 kΩ]──── Base (B) ───┤  2N2222
-                                       │
-   Audio GND ──────────── Emitter (E)──┘
-        │                              │
-        └──────────────────────────────┴──── 12 V GND (-)
-
-  Notes:
-    • 2N2222: max Ic = 600 mA.  BC547: max Ic = 100 mA.
-    • For loads > 600 mA: use TIP120 Darlington (same pinout, higher current).
-    • Base resistor (1 kΩ) limits current — do not omit.
-
-─────────────────────────────────────────────────────────────────────
-
-AUDIO OUTPUT CHARACTERISTICS
-
-    Peak voltage:    ≈ 0.5 – 1.5 V  (set volume to 100%)
-    Impedance:       ≈ 32 Ω  (standard headphone amp)
-    Frequency range: 20 Hz – 20,000 Hz
-    Waveform:        Square (hard-clipped)
-
-  ⚠  Use the LEFT or RIGHT channel — both carry the same signal.
-  ⚠  Always connect the audio GND (sleeve / ring) to the circuit GND.
-  ⚠  Set volume to 100% for maximum gate/base drive.
-  ⚠  Keep duty cycle between 5% and 95% for best results.`;
-
 // ─── How To Use ────────────────────────────────────────────────────────────
 
 function HowToUse() {
@@ -245,39 +181,6 @@ function HowToUse() {
         </div>
       </div>
 
-      <div className="rounded-lg border border-[hsl(30_86%_57%/0.2)] bg-[hsl(30_86%_57%/0.05)] p-3">
-        <p className="text-xs text-[hsl(30_86%_57%)] font-medium mb-1">Next steps</p>
-        <p className="text-xs text-muted-foreground">
-          See the <span className="font-medium text-foreground">Hardware Guide</span> tab for complete MOSFET (IRLZ44N) and BJT (2N2222) wiring circuits, component values, and safety notes.
-        </p>
-      </div>
-    </div>
-  );
-}
-
-// ─── Hardware Guide ────────────────────────────────────────────────────────
-
-function HardwareGuide() {
-  return (
-    <div className="rounded-lg border border-border bg-[hsl(215_28%_6%)] p-4 overflow-auto max-h-[520px]" data-testid="hardware-guide">
-      <pre className="text-xs font-mono leading-relaxed whitespace-pre text-muted-foreground">
-        {MOSFET_GUIDE.split("\n").map((line, i) => {
-          const isHeading = line.startsWith("CIRCUIT") || line.startsWith("AUDIO OUTPUT");
-          const isWarn    = line.startsWith("  ⚠");
-          return (
-            <span
-              key={i}
-              className={
-                isHeading ? "text-[hsl(187_84%_54%)] font-semibold" :
-                isWarn    ? "text-[hsl(30_86%_57%)]" :
-                ""
-              }
-            >
-              {line + "\n"}
-            </span>
-          );
-        })}
-      </pre>
     </div>
   );
 }
@@ -574,9 +477,6 @@ registerProcessor("pwm-processor", PWMProcessor);
             <TabsTrigger value="control" data-testid="tab-control" className="gap-1.5 flex-1 text-xs sm:text-sm">
               <Zap className="w-3.5 h-3.5" /> PWM Control
             </TabsTrigger>
-            <TabsTrigger value="hardware" data-testid="tab-hardware" className="gap-1.5 flex-1 text-xs sm:text-sm">
-              <Cpu className="w-3.5 h-3.5" /> Hardware
-            </TabsTrigger>
             <TabsTrigger value="howto" data-testid="tab-howto" className="gap-1.5 flex-1 text-xs sm:text-sm">
               <BookOpen className="w-3.5 h-3.5" /> How to Use
             </TabsTrigger>
@@ -805,11 +705,6 @@ registerProcessor("pwm-processor", PWMProcessor);
                 </div>
               )}
             </div>{/* end flex */}
-          </TabsContent>
-
-          {/* ── Hardware Tab ────────────────────────────────────────────── */}
-          <TabsContent value="hardware">
-            <HardwareGuide />
           </TabsContent>
 
           {/* ── How To Use Tab ──────────────────────────────────────────── */}
